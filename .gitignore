@@ -1,0 +1,13 @@
+# Backups created by the installer inside the Isaac Sim folder (not here, but just in case)
+*.kit.bak
+
+# Python / OS cruft
+__pycache__/
+*.pyc
+.DS_Store
+
+# colcon workspace build artifacts
+build/
+install/
+log/
+

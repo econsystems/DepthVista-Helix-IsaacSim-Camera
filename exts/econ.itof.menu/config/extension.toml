@@ -1,0 +1,15 @@
+[package]
+version = "1.0.0"
+title = "e-con DepthVista Helix iToF Cameras"
+description = "Adds the e-con DepthVista Helix iToF camera to Create > Sensors > Camera and Depth Sensors."
+category = "Simulation"
+keywords = ["isaac", "sensor", "camera", "depth", "tof", "iToF", "e-con", "DepthVista", "Helix"]
+authors = ["e-con Systems"]
+repository = "https://github.com/econsystems/DepthVista-Helix-IsaacSim-Camera"
+
+[dependencies]
+"omni.kit.menu.utils" = {}
+"omni.usd" = {}
+
+[[python.module]]
+name = "econ.itof.menu"
