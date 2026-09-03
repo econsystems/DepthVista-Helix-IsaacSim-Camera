@@ -1,0 +1,24 @@
+[package]
+version = "1.0.0"
+title = "e-con DepthVista Helix iToF — ROS 2 & Viewer"
+description = "Publish e-con DepthVista Helix iToF cameras to ROS 2 (depth, camera_info, points, IMU, TF) by enabling the pre-baked ROS variant on the units you pick — namespaced per unit, no runtime graph building — plus a localhost depth/point-cloud web viewer, an in-Isaac ground-truth depth viewer with scene projection, and a one-click camera-on-a-stand test rig. Add the camera asset with econ.itof.menu."
+category = "Simulation"
+keywords = ["isaac", "sensor", "camera", "depth", "tof", "iToF", "e-con", "DepthVista", "Helix", "ros2", "ground truth"]
+authors = ["e-con Systems"]
+repository = "https://github.com/econsystems/DepthVista-Helix-IsaacSim-Camera"
+
+[dependencies]
+"econ.itof.menu" = {}          # provides the DepthVista camera USD (Create menu)
+"omni.kit.menu.utils" = {}
+"omni.usd" = {}
+"omni.ui" = {}
+# ROS 2 publisher graphs.
+"isaacsim.ros2.bridge" = {}
+"isaacsim.core.nodes" = {}
+"omni.graph.action" = {}
+# Image viewer + ground-truth projection (Replicator annotators + debug draw).
+"omni.replicator.core" = {}
+"isaacsim.util.debug_draw" = {}
+
+[[python.module]]
+name = "econ.itof.ros"
