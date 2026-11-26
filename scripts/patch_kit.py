@@ -7,7 +7,8 @@ auto-loads the extension reliably (the persistent user config does not, on Isaac
 Usage:
     patch_kit.py <isaac_apps_dir> <ext_name> [--uninstall]
 
-Idempotent. A one-time <kit>.bak is written before the first edit so --uninstall is clean.
+Idempotent. A one-time <kit>.bak is written before the first edit. --uninstall removes only this
+extension's line, so dependencies added by other extensions stay.
 """
 import glob
 import os
@@ -45,17 +46,16 @@ def install(appdir: str, ext: str) -> int:
 
 
 def uninstall(appdir: str, ext: str) -> int:
+    # Remove only this extension's dependency line: other extensions may have added theirs since the
+    # backup was taken. The backup is deleted once the .kit matches it again.
     for kit in kit_files(appdir):
-        if os.path.exists(kit + ".bak"):
-            open(kit, "w").write(open(kit + ".bak").read())
+        lines = [ln for ln in open(kit).read().splitlines(keepends=True)
+                 if not ln.strip().startswith(f'"{ext}"')]
+        s = "".join(lines)
+        open(kit, "w").write(s)
+        print(f"[INFO] removed {ext} from {os.path.basename(kit)}")
+        if os.path.exists(kit + ".bak") and open(kit + ".bak").read() == s:
             os.remove(kit + ".bak")
-            print(f"[INFO] restored {os.path.basename(kit)} from backup")
-        else:
-            # No backup (e.g. line added by hand) — strip the dependency line directly.
-            lines = [ln for ln in open(kit).read().splitlines(keepends=True)
-                     if not (ext in ln and ln.strip().startswith(f'"{ext}"'))]
-            open(kit, "w").write("".join(lines))
-            print(f"[INFO] removed {ext} from {os.path.basename(kit)}")
     return 0
 
 

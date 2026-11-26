@@ -95,8 +95,8 @@ from the Script Editor to publish the camera topics. The script starts the simul
 automatically if it is not already playing, then detects the four units and publishes
 depth, point cloud, camera_info and IMU topics for each.
 
-It differs from the default [`../../ros2/isaac_usd_ros_itof.py`](../../ros2/isaac_usd_ros_itof.py)
-in the following respects:
+It is a standalone, Nav2-tuned publisher — it differs from the extension's default ROS
+publishing in the following respects:
 
 - Camera frames are parented under the Carter's `base_link`, joining the robot's
   `map → odom → base_link` transform tree instead of a separate `world` frame.
@@ -130,10 +130,11 @@ $ ros2 topic list
 
 ## Run — Scene 1 (compact warehouse)
 
-The Carter navigating the compact warehouse in RViz — the four iToF
-point clouds populate the costmap and the planner routes around obstacles in real time:
+The Carter navigating the compact warehouse, with Isaac Sim on the left and RViz on the right. The
+four iToF point clouds populate the costmap and the planner routes around obstacles in real time
+(recorded on Isaac Sim 6.2; the drive is shown faster than real time):
 
-![Nova Carter navigating the compact warehouse in RViz](../../docs/Example2_Navigation/gifs/carter_navigation.gif)
+![Nova Carter navigating the compact warehouse: Isaac Sim and RViz](../../docs/Example2_Navigation/gifs/carter_navigation.gif)
 
 1. In Isaac Sim, **File → Open** and select
    [`assets/carter_warehouse_nav_scene.usd`](assets/carter_warehouse_nav_scene.usd).

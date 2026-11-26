@@ -35,7 +35,10 @@ Open the Robotics Examples browser via **Window → Robotics Examples**:
 
 ![Window menu with Robotics Examples](../../docs/Example1_Palletization/images/01-window-robotics-examples.png)
 
-Select **CORTEX → UR10 Palletizing**, then click **LOAD** (Load World and Task):
+Select **CORTEX → UR10 Palletizing**, then click **LOAD** (Load World and Task).
+In Isaac Sim 6.2 the browser is under **Window → Examples → Robotics Examples** and the
+example is listed under **Manipulation → UR10 Palletizing**; the scene root is the same
+(`/World/Ur10Table`), so the script below works unchanged.
 
 ![Robotics Examples browser with UR10 Palletizing selected](../../docs/Example1_Palletization/images/02-load-ur10-palletizing.png)
 
@@ -49,7 +52,7 @@ Choose **File → Open**:
 
 ![Script Editor File menu, Open](../../docs/Example1_Palletization/images/04-script-editor-open.png)
 
-Select `DepthVista-Helix-IsaacSim-Camera/examples/example1/add_itof_to_ur10_palletizing.py`, then **Run**
+Select `examples/example1/add_itof_to_ur10_palletizing.py` from this repository, then **Run**
 (or press **Ctrl+Enter**):
 
 ![add_itof_to_ur10_palletizing.py loaded in the Script Editor](../../docs/Example1_Palletization/images/05-example-script-loaded.png)
@@ -70,40 +73,54 @@ The two cameras and the camera stand now appear in the palletizing scene:
 
 ### Output — stream and visualise
 
-With the cameras in the scene, press **Play** and run
-[`../../ros2/isaac_usd_ros_itof.py`](../../ros2/isaac_usd_ros_itof.py) from the Script
-Editor. It publishes ROS 2 depth, point cloud, camera_info, and IMU topics for
-both cameras, and serves the browser depth viewer.
+With the cameras in the scene, open the **e-con iToF** control window (see the
+[main README](../../README.md#the-e-con-itof-control-window)): click **Refresh list**, tick
+both units (`pallet/DEPTHVISTA_HELIX` and `ur10/ee_link/DEPTHVISTA_HELIX`), pick the
+resolutions to stream (High-res, Long-range), and click **Enable ROS + Publish** (leave
+**Web viewer** on). Press **Play** — it publishes ROS 2 depth, point cloud, camera_info,
+IMU and TF for both cameras, and serves the browser depth viewer.
 
-**Browser depth viewer** (`http://localhost:8211/`) — live, colour-mapped depth
-tiles and interactive point clouds, with no RViz required:
+**Full walkthrough** (sped up — first minute 4×, then 8×): loading UR10 Palletizing,
+adding the cameras, **Enable ROS + Publish** in the control window, and the **In-Isaac GT
+depth viewer** — with **Project GT depth onto scene** ticked it paints the Replicator
+ground-truth depth back onto the pallet (near = red, far = blue) and shows per-camera,
+per-resolution depth tiles live as the UR10 palletizes (`point stride` / `point size`
+control the projected cloud):
 
-![Browser depth viewer](../../docs/Example1_Palletization/gifs/web-viewer.gif)
+![Full example-1 workflow on Isaac Sim 6.2: load the scene, run the script, enable ROS and play; GT depth tiles at the bottom and the RViz point cloud on the right while the UR10 palletizes (shown faster than real time)](../../docs/Example1_Palletization/gifs/depth-viewer-gt.gif)
+
+**Browser depth viewer** (`http://localhost:8211/`) — click **Open Web Viewer** for live,
+colour-mapped depth tiles and interactive point clouds (per-camera checkboxes, point-size
+sliders and **Download .ply**), with no RViz required:
+
+![Browser depth viewer](../../docs/Example1_Palletization/images/web-viewer.png)
 
 **RViz** — the per-camera point clouds fused in the `world` frame:
 
 ![RViz point clouds](../../docs/Example1_Palletization/gifs/rviz.gif)
 
-Published topics (two cameras → `cam0` over the pallet, `cam1` on the wrist):
+Published topics (two units → `Helix_iToF` over the pallet, `Helix_iToF_01` on the wrist;
+each unit's `/tf` is namespaced, `/clock` is global):
 
 ```
 $ ros2 topic list
 /clock
-/tf
-/tof/cam0/highres/camera_info
-/tof/cam0/highres/depth
-/tof/cam0/highres/points
-/tof/cam0/longrange/camera_info
-/tof/cam0/longrange/depth
-/tof/cam0/longrange/points
-/tof/cam0/imu
-/tof/cam1/highres/camera_info
-/tof/cam1/highres/depth
-/tof/cam1/highres/points
-/tof/cam1/longrange/camera_info
-/tof/cam1/longrange/depth
-/tof/cam1/longrange/points
-/tof/cam1/imu
+/Helix_iToF/tf
+/Helix_iToF/highres/camera_info
+/Helix_iToF/highres/depth
+/Helix_iToF/highres/points
+/Helix_iToF/longrange/camera_info
+/Helix_iToF/longrange/depth
+/Helix_iToF/longrange/points
+/Helix_iToF/imu
+/Helix_iToF_01/tf
+/Helix_iToF_01/highres/camera_info
+/Helix_iToF_01/highres/depth
+/Helix_iToF_01/highres/points
+/Helix_iToF_01/longrange/camera_info
+/Helix_iToF_01/longrange/depth
+/Helix_iToF_01/longrange/points
+/Helix_iToF_01/imu
 ```
 
 ### Demo videos

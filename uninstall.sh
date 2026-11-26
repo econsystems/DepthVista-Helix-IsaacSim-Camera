@@ -2,8 +2,8 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # e-con DepthVista Helix iToF — Isaac Sim uninstaller (Linux)
 #
-# Reverts EVERYTHING build.sh did, returning Isaac Sim to stock:
-#   - restores the Full app .kit files from their .bak (removes the dependency line),
+# Reverts everything build.sh did:
+#   - removes its dependency line from the Full app .kit files (other extensions' lines stay),
 #   - removes the extension from <isaac>/extsUser.
 # Same Isaac-Sim detection as build.sh: env -> common locations -> search $HOME -> ask.
 #
@@ -14,7 +14,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-EXT_NAME="${EXT_NAME:-econ.itof.menu}"
+EXT_NAMES="${EXT_NAMES:-econ.itof.menu econ.itof.ros}"
 info() { printf '[INFO] %s\n'  "$*"; }
 err()  { printf '[ERROR] %s\n' "$*" >&2; }
 
@@ -51,18 +51,19 @@ done
 info "Using Isaac Sim at: ${ISAACSIM_PATH}"
 
 # ── Revert ────────────────────────────────────────────────────────────────────
-if command -v python3 >/dev/null 2>&1; then
-    python3 "${SCRIPT_DIR}/scripts/patch_kit.py" "${ISAACSIM_PATH}/apps" "${EXT_NAME}" --uninstall \
-        || err "Could not restore .kit files (continuing to remove the extension)."
-else
-    err "python3 not found — cannot restore .kit files automatically."
-fi
-
-rm -rf "${ISAACSIM_PATH}/extsUser/${EXT_NAME}"
-info "Removed ${ISAACSIM_PATH}/extsUser/${EXT_NAME}"
+for _n in ${EXT_NAMES}; do
+    if command -v python3 >/dev/null 2>&1; then
+        python3 "${SCRIPT_DIR}/scripts/patch_kit.py" "${ISAACSIM_PATH}/apps" "${_n}" --uninstall \
+            || err "Could not restore .kit files for ${_n} (continuing)."
+    else
+        err "python3 not found — cannot restore .kit files automatically."
+    fi
+    rm -rf "${ISAACSIM_PATH}/extsUser/${_n}"
+    info "Removed ${ISAACSIM_PATH}/extsUser/${_n}"
+done
 
 cat <<EOF
 
-[SUCCESS] e-con DepthVista Helix removed. Isaac Sim is back to stock.
+[SUCCESS] e-con DepthVista Helix removed.
   Re-install anytime with ./build.sh
 EOF

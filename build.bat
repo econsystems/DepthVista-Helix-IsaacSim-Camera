@@ -1,82 +1,59 @@
 @echo off
-REM ───────────────────────────────────────────────────────────────────────────
-REM e-con DepthVista Helix iToF — Isaac Sim installer (Windows)
+REM ---------------------------------------------------------------------------
+REM e-con DepthVista Helix iToF - Isaac Sim installer (Windows)
 REM
-REM Clones/verifies the repo, locates Isaac Sim, and registers the econ.itof.menu extension
-REM so the cameras appear under Create -> Sensors -> Camera and Depth Sensors -> e-con on
-REM every launch. Pure Python — nothing to compile.
+REM Registers both extensions - econ.itof.menu (camera asset / Create menu) and
+REM econ.itof.ros (ROS 2 publish + web viewer + GT viewer) - so they auto-load on
+REM every launch. Pure Python - nothing to compile.
 REM
 REM Usage:
-REM   build.bat                 - clone (if needed) + register
-REM   build.bat <repo-url>      - override REPO_URL
-REM   set REPO_URL=... & set INSTALL_DIR=... & set ISAACSIM_PATH=... & build.bat
-REM ───────────────────────────────────────────────────────────────────────────
+REM   build.bat                            - register the extensions with Isaac Sim
+REM   set ISAACSIM_PATH=... ^& build.bat   - skip Isaac Sim auto-detection
+REM ---------------------------------------------------------------------------
 setlocal enabledelayedexpansion
 set "SCRIPT_DIR=%~dp0"
 if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 
-REM ── Configuration (override via env or 1st arg) ──────────────────────────────
-if not defined REPO_URL set "REPO_URL=%~1"
-if not defined REPO_URL set "REPO_URL=https://github.com/econsystems/DepthVista-Helix-IsaacSim-Camera.git"
-if not defined EXT_NAME set "EXT_NAME=econ.itof.menu"
+REM Configuration (override via env)
+if not defined EXT_NAMES set "EXT_NAMES=econ.itof.menu econ.itof.ros"
+if not defined INSTALL_DIR set "INSTALL_DIR=%SCRIPT_DIR%"
 
-REM If run from inside a clone (exts\<EXT_NAME> beside the script), install in place.
-if not defined INSTALL_DIR (
-    if exist "%SCRIPT_DIR%\exts\%EXT_NAME%" (
-        set "INSTALL_DIR=%SCRIPT_DIR%"
-    ) else (
-        set "INSTALL_DIR=%USERPROFILE%\DepthVista-Helix-IsaacSim-Camera"
-    )
-)
-
-REM ── 1. Clone or update the repo ──────────────────────────────────────────────
-where git >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] git is not installed. Install git and re-run.
-    exit /b 1
-)
-
-if exist "%INSTALL_DIR%\.git" (
-    echo [INFO] Updating existing clone at %INSTALL_DIR% ...
-    git -C "%INSTALL_DIR%" pull --ff-only
-) else if exist "%INSTALL_DIR%\exts\%EXT_NAME%" (
-    echo [INFO] Running from inside the repo at %INSTALL_DIR% - skipping clone.
-) else (
-    echo [INFO] Cloning %REPO_URL% -^> %INSTALL_DIR% ...
-    git clone "%REPO_URL%" "%INSTALL_DIR%"
-    if errorlevel 1 (
-        echo [ERROR] git clone failed.
+REM 1. Sanity-check each extension is present (do NOT build anything)
+for %%N in (%EXT_NAMES%) do (
+    if not exist "%INSTALL_DIR%\exts\%%N" (
+        echo [ERROR] Extension not found at %INSTALL_DIR%\exts\%%N.
+        echo [ERROR] This package must contain exts\%%N\ ^(config\extension.toml + python^).
         exit /b 1
     )
+    echo [INFO] Found extension: %INSTALL_DIR%\exts\%%N
 )
 
-REM ── 2. Sanity-check the extension is present (do NOT build anything) ─────────
-set "EXT_DIR=%INSTALL_DIR%\exts\%EXT_NAME%"
-if not exist "%EXT_DIR%" (
-    echo [ERROR] Extension not found at %EXT_DIR%.
-    echo [ERROR] The cloned repo must contain exts\%EXT_NAME%\ ^(config\extension.toml + python^).
-    exit /b 1
-)
-echo [INFO] Found extension: %EXT_DIR%
-
-REM ── 3. Locate the Isaac Sim install (holds isaac-sim.bat) ────────────────────
+REM 2. Locate the Isaac Sim install(s) (each holds isaac-sim.bat). $ISAACSIM_PATH env wins;
+REM    otherwise list EVERY install found and, when more than one, ask which (numbered, versions).
 if not defined ISAACSIM_PATH if defined ISAAC_SIM_PATH set "ISAACSIM_PATH=%ISAAC_SIM_PATH%"
-REM Detection: env -> common locations -> ask the user. No machine-specific hard-coded path.
+set "COUNT=0"
 if not defined ISAACSIM_PATH (
     for %%D in (
         "%LOCALAPPDATA%\ov\pkg\isaac-sim-*"
         "%LOCALAPPDATA%\ov\pkg\isaac_sim-*"
         "%USERPROFILE%\isaacsim"
         "%USERPROFILE%\isaac-sim"
-        "%USERPROFILE%\Downloads\isaacsim"
+        "%USERPROFILE%\Downloads\isaacsim*"
         "%USERPROFILE%\Downloads\isaac-sim*"
         "C:\isaacsim"
         "C:\isaac-sim"
     ) do (
-        for /d %%P in (%%~D) do (
-            if exist "%%~P\isaac-sim.bat" set "ISAACSIM_PATH=%%~P"
-        )
-        if not defined ISAACSIM_PATH if exist "%%~D\isaac-sim.bat" set "ISAACSIM_PATH=%%~D"
+        for /d %%P in (%%~D) do if exist "%%~P\isaac-sim.bat" call :add_install "%%~P"
+        if exist "%%~D\isaac-sim.bat" call :add_install "%%~D"
+    )
+    if !COUNT! EQU 1 set "ISAACSIM_PATH=!INSTALL_1!"
+    if !COUNT! GTR 1 (
+        echo [INFO] Found !COUNT! Isaac Sim installs:
+        for /l %%I in (1,1,!COUNT!) do call :list_one %%I
+        set /p "SEL=Install into which one? [1-!COUNT!], or blank to abort: "
+        if not defined SEL echo [ERROR] Aborted. & exit /b 1
+        for /l %%I in (1,1,!COUNT!) do if "!SEL!"=="%%I" set "ISAACSIM_PATH=!INSTALL_%%I!"
+        if not defined ISAACSIM_PATH echo [ERROR] Invalid choice: !SEL! & exit /b 1
     )
 )
 
@@ -89,28 +66,55 @@ if not defined ISAACSIM_PATH echo [ERROR] Aborted - no Isaac Sim path given. & e
 if not exist "%ISAACSIM_PATH%\isaac-sim.bat" echo [ERROR] No isaac-sim.bat in "%ISAACSIM_PATH%". & goto :ask_isaac
 
 :have_isaac
-echo [INFO] Using Isaac Sim at: %ISAACSIM_PATH%
+call :isaac_ver "%ISAACSIM_PATH%"
+echo [INFO] Using Isaac Sim at: %ISAACSIM_PATH%   Isaac Sim !RESULT_VER!
 
-REM ── 4. Register so it auto-loads on every normal launch ──────────────────────
-REM Copy the extension into <isaac>\extsUser (on the search path) and add it to the Full app's
-REM .kit [dependencies], which Isaac reads fresh each launch (the persistent config is unreliable).
 set "EXTSUSER=%ISAACSIM_PATH%\extsUser"
 if not exist "%EXTSUSER%" mkdir "%EXTSUSER%"
-echo [INFO] Copying extension into %EXTSUSER%\%EXT_NAME% ...
-robocopy "%EXT_DIR%" "%EXTSUSER%\%EXT_NAME%" /MIR /NJH /NJS /NDL /NFL >nul
 
 set "PYEXE="
 where py  >nul 2>&1 && set "PYEXE=py"
 if not defined PYEXE ( where python >nul 2>&1 && set "PYEXE=python" )
-if not defined PYEXE echo [ERROR] python not found - needed to register the extension. & exit /b 1
-"!PYEXE!" "%INSTALL_DIR%\scripts\patch_kit.py" "%ISAACSIM_PATH%\apps" "%EXT_NAME%" || ( echo [ERROR] Could not patch the Isaac Sim .kit files. & exit /b 1 )
+if not defined PYEXE echo [ERROR] python not found - needed to register the extensions. & exit /b 1
 
-REM ── 5. Done ──────────────────────────────────────────────────────────────────
+REM 3. Register each extension so it auto-loads: copy into <isaac>\extsUser (on the
+REM    search path) and add it to the Full app's .kit [dependencies].
+for %%N in (%EXT_NAMES%) do (
+    echo [INFO] Copying %%N into %EXTSUSER%\%%N ...
+    robocopy "%INSTALL_DIR%\exts\%%N" "%EXTSUSER%\%%N" /MIR /NJH /NJS /NDL /NFL >nul
+    "!PYEXE!" "%INSTALL_DIR%\scripts\patch_kit.py" "%ISAACSIM_PATH%\apps" "%%N" || ( echo [ERROR] Could not patch the Isaac Sim .kit files for %%N. & exit /b 1 )
+    echo [INFO] Registered %%N.
+)
+
+REM 4. Done
 echo.
 echo [SUCCESS] e-con DepthVista Helix installed ^(auto-loads on every launch^).
 echo.
 echo   If Isaac Sim is open, fully close and reopen it. Launch normally - no special command.
 echo   Then: Create -^> Sensors -^> Camera and Depth Sensors -^> e-con -^> DepthVista Helix iToF
+echo   The 'e-con iToF' control window docks next to the Property panel.
 echo.
 echo   Uninstall (reverts everything): uninstall.bat
 exit /b 0
+
+REM Subroutines (reached only via CALL; the main flow exits above)
+:add_install
+REM %1 = install path; append to INSTALL_<n> if not already present (dedupe)
+set "_p=%~1"
+for /l %%I in (1,1,!COUNT!) do if /i "!INSTALL_%%I!"=="!_p!" goto :eof
+set /a COUNT+=1
+set "INSTALL_!COUNT!=!_p!"
+goto :eof
+
+:list_one
+REM %1 = index; print "  <n>) <path>   Isaac Sim <version>"
+call :isaac_ver "!INSTALL_%~1!"
+echo   %~1) !INSTALL_%~1!   Isaac Sim !RESULT_VER!
+goto :eof
+
+:isaac_ver
+REM %1 = install path; sets RESULT_VER from its VERSION file (trimmed at '+')
+set "RESULT_VER="
+if exist "%~1\VERSION" for /f "usebackq delims=" %%V in ("%~1\VERSION") do if not defined RESULT_VER set "RESULT_VER=%%V"
+if defined RESULT_VER for /f "tokens=1 delims=+" %%A in ("!RESULT_VER!") do set "RESULT_VER=%%A"
+goto :eof

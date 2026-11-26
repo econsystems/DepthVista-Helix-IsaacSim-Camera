@@ -1,10 +1,14 @@
 [package]
-version = "1.0.0"
-title = "e-con DepthVista Helix iToF Cameras"
-description = "Adds the e-con DepthVista Helix iToF camera to Create > Sensors > Camera and Depth Sensors."
+version = "2.1.0"
+title = "e-con DepthVista Helix iToF — Camera Asset"
+description = "Adds the e-con DepthVista Helix iToF camera to Create > Sensors > Camera and Depth Sensors. Publishing / viewing / ground truth are provided by the companion econ.itof.ros extension."
 category = "Simulation"
 keywords = ["isaac", "sensor", "camera", "depth", "tof", "iToF", "e-con", "DepthVista", "Helix"]
 authors = ["e-con Systems"]
+icon = "data/icon.png"
+preview_image = "data/preview.png"
+readme = "docs/README.md"
+changelog = "docs/CHANGELOG.md"
 repository = "https://github.com/econsystems/DepthVista-Helix-IsaacSim-Camera"
 
 [dependencies]

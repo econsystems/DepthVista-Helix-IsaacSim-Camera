@@ -1,7 +1,10 @@
-"""Adds the e-con DepthVista Helix iToF cameras to Isaac Sim's Create menu.
+"""econ.itof.menu — adds the e-con DepthVista Helix iToF camera asset to Isaac Sim.
 
-The menu items are added under Create > Sensors > Camera and Depth Sensors > e-con;
-each one references the matching USD into the current stage.
+Scope: the CAMERA ASSET only.  It registers
+    Create > Sensors > Camera and Depth Sensors > e-con > DepthVista Helix iToF
+which references the shipped DEPTHVISTA_HELIX USD into the current stage (with a
+metersPerUnit-compensating scale).  Publishing / viewing / ground truth live in
+the companion **econ.itof.sim** extension, which finds this extension's assets/.
 """
 
 import gc
@@ -15,21 +18,24 @@ from omni.kit.menu.utils import MenuItemDescription, add_menu_items, remove_menu
 from pxr import Usd, UsdGeom
 
 VENDOR = "e-con"
-# Both USD variants ship in the repo, but the Create menu exposes only one
-# (the GMSL build) to avoid redundancy, shown without a variant suffix.
 CAMERAS = [
     {"name": "DepthVista Helix iToF", "usd": "DEPTHVISTA_HELIX_GMSL.usd", "prim": "/DEPTHVISTA_HELIX"},
 ]
 
 
 def _sensor_glyph():
-    """Path to the existing Sensors menu icon, so the merged item keeps its glyph."""
+    """Path to the built-in Sensors menu icon, so the merged item keeps its glyph.
+    Name-agnostic across Isaac versions: the icon-providing extension was
+    isaacsim.sensors.camera.ui and moves to isaacsim.sensors.experimental.rtx.ui in
+    6.0 - match any sensors UI extension that ships data/sensor.svg."""
     try:
         mgr = omni.kit.app.get_app().get_extension_manager()
         for e in mgr.get_extensions():
-            if e.get("name", "").startswith("isaacsim.sensors.camera.ui"):
+            name = e.get("name", "")
+            if "sensors" in name and name.endswith(".ui"):
                 g = os.path.join(mgr.get_extension_path(e["id"]), "data", "sensor.svg")
-                return g if os.path.isfile(g) else None
+                if os.path.isfile(g):
+                    return g
     except Exception:
         pass
     return None
@@ -44,11 +50,9 @@ class Extension(omni.ext.IExt):
             MenuItemDescription(
                 name=cam["name"],
                 onclick_fn=lambda up=os.path.join(self._asset_dir, cam["usd"]),
-                                  pp=cam["prim"]: self._add_camera(up, pp),
-            )
+                                  pp=cam["prim"]: self._add_camera(up, pp))
             for cam in CAMERAS
         ]
-
         self._menu_items = [
             MenuItemDescription(name="Sensors", glyph=_sensor_glyph(), sub_menu=[
                 MenuItemDescription(name="Camera and Depth Sensors", sub_menu=[
@@ -83,8 +87,8 @@ class Extension(omni.ext.IExt):
 
     @staticmethod
     def _compensate_units(stage, xform, usd_path: str):
-        """Scale the wrapper to compensate a metersPerUnit mismatch (USD references do
-        not auto-rescale). Metre-native assets give ratio 1.0, so no scale is added."""
+        """Scale the wrapper to compensate a metersPerUnit mismatch (references do
+        not auto-rescale). Metre-native assets give ratio 1.0, so no scale added."""
         stage_mpu = UsdGeom.GetStageMetersPerUnit(stage) or 1.0
         asset_mpu = UsdGeom.GetStageMetersPerUnit(Usd.Stage.Open(usd_path)) or 1.0
         ratio = asset_mpu / stage_mpu
@@ -94,8 +98,8 @@ class Extension(omni.ext.IExt):
 
     @staticmethod
     def _stage_root(stage) -> str:
-        """Parent the camera under the stage default prim (like the built-in
-        sensors do), falling back to /World, then the pseudo-root."""
+        """Parent under the stage default prim (like the built-in sensors), falling
+        back to /World, then the pseudo-root."""
         dp = stage.GetDefaultPrim()
         if dp and dp.IsValid():
             return dp.GetPath().pathString
